@@ -205,59 +205,6 @@ class General extends Component
         }
     }
 
-    public function updatedParsedServiceDomains($value, $key)
-    {
-        // Handle validation for Docker Compose service domains
-        if (str_ends_with($key, '.domain')) {
-            try {
-                $this->validateServiceDomain($value);
-            } catch (\Exception $e) {
-                $this->dispatch('error', $e->getMessage());
-            }
-        }
-    }
-
-    private function validateServiceDomain($domain)
-    {
-        if (empty($domain)) {
-            return; // nullable domains are allowed
-        }
-        
-        $domains = str($domain)->explode(',')->map(fn($d) => trim($d));
-        $failedDomains = [];
-        
-        foreach ($domains as $d) {
-            if (empty($d)) {
-                continue;
-            }
-            
-            // Check if domain has schema
-            if (!preg_match('/^https?:\/\//i', $d)) {
-                $failedDomains[] = $d;
-                continue;
-            }
-            
-            // Validate URL structure using Spatie\Url
-            try {
-                $url = Url::fromString($d);
-                if (!$url->getHost()) {
-                    $failedDomains[] = $d;
-                }
-            } catch (\Exception $e) {
-                $failedDomains[] = $d;
-            }
-        }
-        
-        if (!empty($failedDomains)) {
-            if (count($failedDomains) === 1) {
-                throw new \Exception("Domain '{$failedDomains[0]}' must include http:// or https:// scheme.");
-            } else {
-                $failedList = implode(', ', array_map(fn($d) => "'$d'", $failedDomains));
-                throw new \Exception("The following domains must include http:// or https:// scheme: {$failedList}");
-            }
-        }
-    }
-
     public function hasInvalidDomains()
     {
         if (empty($this->application->fqdn)) {
