@@ -26,7 +26,12 @@
                 </div>
             @endif
             <input autocomplete="{{ $autocomplete }}" value="{{ $value }}"
-                {{ $attributes->merge(['class' => $defaultClass]) }} @required($required)
+                @error($id)
+                    {{ $attributes->merge(['class' => $defaultClass . ' border-red-500 dark:border-red-500 focus:border-red-500 dark:focus:border-red-500 ring-red-500 dark:ring-red-500 focus:ring-red-500 dark:focus:ring-red-500']) }}
+                @else
+                    {{ $attributes->merge(['class' => $defaultClass]) }}
+                @enderror
+                @required($required)
                 @if ($id !== 'null') wire:model={{ $id }} @endif
                 wire:dirty.class.remove='dark:focus:ring-coolgray-300 dark:ring-coolgray-300'
                 wire:dirty.class="dark:focus:ring-warning dark:ring-warning" wire:loading.attr="disabled"
@@ -37,7 +42,12 @@
         </div>
     @else
         <input autocomplete="{{ $autocomplete }}" @if ($value) value="{{ $value }}" @endif
-            {{ $attributes->merge(['class' => $defaultClass]) }} @required($required) @readonly($readonly)
+            @error($id)
+                {{ $attributes->merge(['class' => $defaultClass . ' border-red-500 dark:border-red-500 focus:border-red-500 dark:focus:border-red-500 ring-red-500 dark:ring-red-500 focus:ring-red-500 dark:focus:ring-red-500']) }}
+            @else
+                {{ $attributes->merge(['class' => $defaultClass]) }}
+            @enderror
+            @required($required) @readonly($readonly)
             @if ($id !== 'null') wire:model={{ $id }} @endif
             wire:dirty.class.remove='dark:focus:ring-coolgray-300 dark:ring-coolgray-300'
             wire:dirty.class="dark:focus:ring-warning dark:ring-warning" wire:loading.attr="disabled"

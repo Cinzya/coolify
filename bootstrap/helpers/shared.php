@@ -2046,7 +2046,17 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                 );
                 $serviceLabels = $serviceLabels->merge($defaultLabels);
                 if (! $isDatabase && $fqdns->count() > 0) {
-                    if ($fqdns) {
+                    // Check if all domains have proper schema (http:// or https://)
+                    $allDomainsValid = true;
+                    foreach ($fqdns as $domain) {
+                        $trimmedDomain = trim($domain);
+                        if (!empty($trimmedDomain) && !preg_match('/^https?:\/\//i', $trimmedDomain)) {
+                            $allDomainsValid = false;
+                            break;
+                        }
+                    }
+                    
+                    if ($fqdns && $allDomainsValid) {
                         $shouldGenerateLabelsExactly = $resource->server->settings->generate_exact_labels;
                         if ($shouldGenerateLabelsExactly) {
                             switch ($resource->server->proxyType()) {

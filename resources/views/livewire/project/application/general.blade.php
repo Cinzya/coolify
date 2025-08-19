@@ -47,13 +47,21 @@
                             <h3 class="pt-6">Domains</h3>
                             @foreach (data_get($parsedServices, 'services') as $serviceName => $service)
                                 @if (!isDatabaseImage(data_get($service, 'image')))
-                                    <div class="flex items-end gap-2">
-                                        <x-forms.input
-                                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.coolify.io,https://cloud.coolify.io/dashboard<br>- http://app.coolify.io/api/v3<br>- http://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container. "
-                                            label="Domains for {{ str($serviceName)->headline() }}"
-                                            id="parsedServiceDomains.{{ str($serviceName)->slug('_') }}.domain"></x-forms.input>
-                                        <x-forms.button wire:click="generateDomain('{{ $serviceName }}')">Generate
-                                            Domain</x-forms.button>
+                                    <div>
+                                        <div class="flex items-end gap-2">
+                                            <x-forms.input
+                                                helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.coolify.io,https://cloud.coolify.io/dashboard<br>- http://app.coolify.io/api/v3<br>- http://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container. "
+                                                label="Domains for {{ str($serviceName)->headline() }}"
+                                                id="parsedServiceDomains.{{ str($serviceName)->slug('_') }}.domain"
+                                                :class="$this->hasInvalidServiceDomain($serviceName) ? 'border-red-500 dark:border-red-500 focus:border-red-500 dark:focus:border-red-500 ring-red-500 dark:ring-red-500' : ''"></x-forms.input>
+                                            <x-forms.button wire:click="generateDomain('{{ $serviceName }}')">Generate
+                                                Domain</x-forms.button>
+                                        </div>
+                                        @if ($this->hasInvalidServiceDomain($serviceName))
+                                            <label class="label">
+                                                <span class="text-red-500 label-text-alt">Every domain must include the http:// or https:// scheme.</span>
+                                            </label>
+                                        @endif
                                     </div>
                                 @endif
                             @endforeach
@@ -89,11 +97,17 @@
                     @else
                         <x-forms.input placeholder="https://coolify.io" wire:model.blur-sm="application.fqdn"
                             label="Domains"
-                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.coolify.io,https://cloud.coolify.io/dashboard<br>- http://app.coolify.io/api/v3<br>- http://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container. " />
+                            helper="You can specify one domain with path or more with comma. You can specify a port to bind the domain to.<br><br><span class='text-helper'>Example</span><br>- http://app.coolify.io,https://cloud.coolify.io/dashboard<br>- http://app.coolify.io/api/v3<br>- http://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container. "
+                            :class="$this->hasInvalidDomains() ? 'border-red-500 dark:border-red-500 focus:border-red-500 dark:focus:border-red-500 ring-red-500 dark:ring-red-500' : ''" />
                         <x-forms.button wire:click="getWildcardDomain">Generate Domain
                         </x-forms.button>
                     @endif
                 </div>
+                @if ($this->hasInvalidDomains())
+                    <label class="label">
+                        <span class="text-red-500 label-text-alt">Every domain must include the http:// or https:// scheme.</span>
+                    </label>
+                @endif
                 <div class="flex items-end gap-2">
                     @if ($application->settings->is_container_label_readonly_enabled == false)
                         @if ($application->redirect === 'both')

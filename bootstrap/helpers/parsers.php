@@ -767,7 +767,20 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
             }
         }
         if (! $isDatabase && $fqdns instanceof Collection && $fqdns->count() > 0) {
-            $shouldGenerateLabelsExactly = $resource->destination->server->settings->generate_exact_labels;
+            // Check if all domains have proper schema (http:// or https://)
+            $allDomainsValid = true;
+            foreach ($fqdns as $domain) {
+                $trimmedDomain = trim($domain);
+                if (!empty($trimmedDomain) && !preg_match('/^https?:\/\//i', $trimmedDomain)) {
+                    $allDomainsValid = false;
+                    break;
+                }
+            }
+            
+            
+            // Only generate proxy labels if all domains are valid
+            if ($allDomainsValid) {
+                $shouldGenerateLabelsExactly = $resource->destination->server->settings->generate_exact_labels;
             $uuid = $resource->uuid;
             $network = data_get($resource, 'destination.network');
             if ($isPullRequest) {
@@ -829,6 +842,9 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
                     predefinedPort: $predefinedPort
                 ));
             }
+            } else {
+            }
+        } else {
         }
         data_forget($service, 'volumes.*.content');
         data_forget($service, 'volumes.*.isDirectory');
@@ -1651,7 +1667,19 @@ function serviceParser(Service $resource): Collection
             }
         }
         if (! $isDatabase && $fqdns instanceof Collection && $fqdns->count() > 0) {
-            $shouldGenerateLabelsExactly = $resource->server->settings->generate_exact_labels;
+            // Check if all domains have proper schema (http:// or https://)
+            $allDomainsValid = true;
+            foreach ($fqdns as $domain) {
+                $trimmedDomain = trim($domain);
+                if (!empty($trimmedDomain) && !preg_match('/^https?:\/\//i', $trimmedDomain)) {
+                    $allDomainsValid = false;
+                    break;
+                }
+            }
+            
+            // Only generate proxy labels if all domains are valid
+            if ($allDomainsValid) {
+                $shouldGenerateLabelsExactly = $resource->server->settings->generate_exact_labels;
             $uuid = $resource->uuid;
             $network = data_get($resource, 'destination.network');
             if ($shouldGenerateLabelsExactly) {
@@ -1707,6 +1735,9 @@ function serviceParser(Service $resource): Collection
                     predefinedPort: $predefinedPort
                 ));
             }
+            } else {
+            }
+        } else {
         }
         if (data_get($service, 'restart') === 'no' || data_get($service, 'exclude_from_hc')) {
             $savedService->update(['exclude_from_status' => true]);

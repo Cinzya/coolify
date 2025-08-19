@@ -4,6 +4,7 @@ namespace App\Livewire\Project\Application;
 
 use App\Actions\Application\GenerateConfig;
 use App\Models\Application;
+use App\Rules\ValidDomainWithSchema;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 use Spatie\Url\Url;
@@ -52,53 +53,6 @@ class General extends Component
         'configurationChanged' => '$refresh',
     ];
 
-    protected $rules = [
-        'application.name' => 'required',
-        'application.description' => 'nullable',
-        'application.fqdn' => 'nullable',
-        'application.git_repository' => 'required',
-        'application.git_branch' => 'required',
-        'application.git_commit_sha' => 'nullable',
-        'application.install_command' => 'nullable',
-        'application.build_command' => 'nullable',
-        'application.start_command' => 'nullable',
-        'application.build_pack' => 'required',
-        'application.static_image' => 'required',
-        'application.base_directory' => 'required',
-        'application.publish_directory' => 'nullable',
-        'application.ports_exposes' => 'required',
-        'application.ports_mappings' => 'nullable',
-        'application.custom_network_aliases' => 'nullable',
-        'application.dockerfile' => 'nullable',
-        'application.docker_registry_image_name' => 'nullable',
-        'application.docker_registry_image_tag' => 'nullable',
-        'application.dockerfile_location' => 'nullable',
-        'application.docker_compose_location' => 'nullable',
-        'application.docker_compose' => 'nullable',
-        'application.docker_compose_raw' => 'nullable',
-        'application.dockerfile_target_build' => 'nullable',
-        'application.docker_compose_custom_start_command' => 'nullable',
-        'application.docker_compose_custom_build_command' => 'nullable',
-        'application.custom_labels' => 'nullable',
-        'application.custom_docker_run_options' => 'nullable',
-        'application.pre_deployment_command' => 'nullable',
-        'application.pre_deployment_command_container' => 'nullable',
-        'application.post_deployment_command' => 'nullable',
-        'application.post_deployment_command_container' => 'nullable',
-        'application.custom_nginx_configuration' => 'nullable',
-        'application.settings.is_static' => 'boolean|required',
-        'application.settings.is_spa' => 'boolean|required',
-        'application.settings.is_build_server_enabled' => 'boolean|required',
-        'application.settings.is_container_label_escape_enabled' => 'boolean|required',
-        'application.settings.is_container_label_readonly_enabled' => 'boolean|required',
-        'application.settings.is_preserve_repository_enabled' => 'boolean|required',
-        'application.is_http_basic_auth_enabled' => 'boolean|required',
-        'application.http_basic_auth_username' => 'string|nullable',
-        'application.http_basic_auth_password' => 'string|nullable',
-        'application.watch_paths' => 'nullable',
-        'application.redirect' => 'string|required',
-    ];
-
     protected $validationAttributes = [
         'application.name' => 'name',
         'application.description' => 'description',
@@ -139,6 +93,57 @@ class General extends Component
         'application.redirect' => 'Redirect',
     ];
 
+    protected function rules()
+    {
+        return [
+            'application.name' => 'required',
+            'application.description' => 'nullable',
+            'application.fqdn' => ['nullable', new ValidDomainWithSchema()],
+            'application.git_repository' => 'required',
+            'application.git_branch' => 'required',
+            'application.git_commit_sha' => 'nullable',
+            'application.install_command' => 'nullable',
+            'application.build_command' => 'nullable',
+            'application.start_command' => 'nullable',
+            'application.build_pack' => 'required',
+            'application.static_image' => 'required',
+            'application.base_directory' => 'required',
+            'application.publish_directory' => 'nullable',
+            'application.ports_exposes' => 'required',
+            'application.ports_mappings' => 'nullable',
+            'application.custom_network_aliases' => 'nullable',
+            'application.dockerfile' => 'nullable',
+            'application.docker_registry_image_name' => 'nullable',
+            'application.docker_registry_image_tag' => 'nullable',
+            'application.dockerfile_location' => 'nullable',
+            'application.docker_compose_location' => 'nullable',
+            'application.docker_compose' => 'nullable',
+            'application.docker_compose_raw' => 'nullable',
+            'application.dockerfile_target_build' => 'nullable',
+            'application.docker_compose_custom_start_command' => 'nullable',
+            'application.docker_compose_custom_build_command' => 'nullable',
+            'application.custom_labels' => 'nullable',
+            'application.custom_docker_run_options' => 'nullable',
+            'application.pre_deployment_command' => 'nullable',
+            'application.pre_deployment_command_container' => 'nullable',
+            'application.post_deployment_command' => 'nullable',
+            'application.post_deployment_command_container' => 'nullable',
+            'application.custom_nginx_configuration' => 'nullable',
+            'application.settings.is_static' => 'boolean|required',
+            'application.settings.is_spa' => 'boolean|required',
+            'application.settings.is_build_server_enabled' => 'boolean|required',
+            'application.settings.is_container_label_escape_enabled' => 'boolean|required',
+            'application.settings.is_container_label_readonly_enabled' => 'boolean|required',
+            'application.settings.is_preserve_repository_enabled' => 'boolean|required',
+            'application.is_http_basic_auth_enabled' => 'boolean|required',
+            'application.http_basic_auth_username' => 'string|nullable',
+            'application.http_basic_auth_password' => 'string|nullable',
+            'application.watch_paths' => 'nullable',
+            'application.redirect' => 'string|required',
+        ];
+    }
+
+
     public function mount()
     {
         try {
@@ -151,6 +156,7 @@ class General extends Component
         } catch (\Throwable $e) {
             $this->dispatch('error', $e->getMessage());
         }
+        
         if ($this->application->build_pack === 'dockercompose') {
             $this->application->fqdn = null;
             $this->application->settings->save();
@@ -182,6 +188,57 @@ class General extends Component
         if (str($this->application->status)->startsWith('running') && is_null($this->application->config_hash)) {
             $this->dispatch('configurationChanged');
         }
+    }
+
+    public function updatedApplicationFqdn($value)
+    {
+        try {
+            $this->validateOnly('application.fqdn');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Extract validation error messages and display as toaster
+            $errors = $e->validator->errors()->get('application.fqdn');
+            foreach ($errors as $error) {
+                $this->dispatch('error', $error);
+            }
+            // Re-throw to preserve normal validation behavior
+            throw $e;
+        }
+    }
+
+
+    public function hasInvalidDomains()
+    {
+        if (empty($this->application->fqdn)) {
+            return false;
+        }
+
+        $domains = str($this->application->fqdn)->explode(',');
+        foreach ($domains as $domain) {
+            $trimmedDomain = trim($domain);
+            if (!empty($trimmedDomain) && !preg_match('/^https?:\/\//i', $trimmedDomain)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function hasInvalidServiceDomain($serviceName)
+    {
+        $sanitizedKey = str($serviceName)->slug('_')->toString();
+        $domain = data_get($this->parsedServiceDomains, "{$sanitizedKey}.domain");
+        
+        if (empty($domain)) {
+            return false;
+        }
+        
+        $domains = str($domain)->explode(',');
+        foreach ($domains as $d) {
+            $trimmedDomain = trim($d);
+            if (!empty($trimmedDomain) && !preg_match('/^https?:\/\//i', $trimmedDomain)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function instantSave()
@@ -435,7 +492,6 @@ class General extends Component
                     return;
                 }
             }
-            $this->validate();
 
             if ($this->ports_exposes !== $this->application->ports_exposes || $this->is_container_label_escape_enabled !== $this->application->settings->is_container_label_escape_enabled) {
                 $this->resetDefaultLabels();

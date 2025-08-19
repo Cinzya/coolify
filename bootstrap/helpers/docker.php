@@ -598,6 +598,40 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
     if ($pull_request_id === 0) {
         if ($application->fqdn) {
             $domains = str(data_get($application, 'fqdn'))->explode(',');
+            
+            // Validate all domains have proper schema before generating proxy labels
+            $allDomainsValid = true;
+            foreach ($domains as $domain) {
+                $trimmedDomain = trim($domain);
+                if (!empty($trimmedDomain) && !preg_match('/^https?:\/\//i', $trimmedDomain)) {
+                    ray('Skipping proxy label generation for invalid domain without schema: ' . $trimmedDomain);
+                    $allDomainsValid = false;
+                    break;
+                }
+            }
+            
+            // If domains are invalid, return existing labels unchanged instead of generating new ones
+            if (!$allDomainsValid) {
+                // Parse existing labels from the application's custom_labels and return them
+                if ($application->custom_labels) {
+                    $existingLabels = $application->parseContainerLabels();
+                    if ($existingLabels) {
+                        // Convert existing labels string back to array format
+                        $labelLines = explode("\n", $existingLabels);
+                        $existingLabelsArray = [];
+                        foreach ($labelLines as $line) {
+                            $line = trim($line);
+                            if (!empty($line) && strpos($line, '=') !== false) {
+                                list($key, $value) = explode('=', $line, 2);
+                                $existingLabelsArray[] = trim($key) . '=' . trim($value);
+                            }
+                        }
+                        return $existingLabelsArray;
+                    }
+                }
+                // If no existing labels, return empty array (no proxy config)
+                return $labels->toArray();
+            }
             $shouldGenerateLabelsExactly = $application->destination->server->settings->generate_exact_labels;
             if ($shouldGenerateLabelsExactly) {
                 switch ($application->destination->server->proxyType()) {
