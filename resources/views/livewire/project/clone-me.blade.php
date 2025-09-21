@@ -5,6 +5,14 @@
     <div class="flex flex-col">
         <h1>Clone</h1>
         <div class="subtitle ">Quickly clone all resources to a new project or environment.</div>
+        <div class="mt-4 p-4 text-yellow-800 dark:text-yellow-200 border-l-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg"
+            role="alert">
+            <p class="font-bold">Important: Configuration Only</p>
+            <p class="text-sm mt-1">
+                Cloning copies configurations and settings only. Data stored in volumes, databases, and persistent storage is NOT cloned.
+                You'll need to manually backup and restore data if required.
+            </p>
+        </div>
     </div>
     <x-forms.input required id="newName" label="New Name" />
     <h3 class="pt-8 ">Destination Server</h3>
