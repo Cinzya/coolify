@@ -3,6 +3,7 @@
         fullscreen: false,
         alwaysScroll: false,
         intervalId: null,
+        copied: false,
         makeFullscreen() {
             this.fullscreen = !this.fullscreen;
             if (this.fullscreen === false) {
@@ -12,7 +13,7 @@
         },
         toggleScroll() {
             this.alwaysScroll = !this.alwaysScroll;
-    
+
             if (this.alwaysScroll) {
                 this.intervalId = setInterval(() => {
                     const screen = document.getElementById('screen');
@@ -31,6 +32,15 @@
             clearInterval(this.intervalId);
             const screen = document.getElementById('screen');
             screen.scrollTop = 0;
+        },
+        copyLogs() {
+            const logs = document.getElementById('logs');
+            if (logs) {
+                navigator.clipboard.writeText(logs.innerText).then(() => {
+                    this.copied = true;
+                    setTimeout(() => this.copied = false, 2000);
+                });
+            }
         }
     }">
         <div class="flex gap-2 items-center">
@@ -65,6 +75,20 @@
                 <div :class="fullscreen ? 'fixed top-4 right-4' : 'absolute top-6 right-0'">
                     <div class="flex justify-end gap-4" :class="fullscreen ? 'fixed' : ''"
                         style="transform: translateX(-100%)">
+                        <button title="Copy Logs" x-on:click="copyLogs">
+                            <svg x-show="!copied" class="w-5 h-5 opacity-30 hover:opacity-100" viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                    <rect width="13" height="13" x="9" y="9" rx="2" ry="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </g>
+                            </svg>
+                            <svg x-show="copied" x-cloak class="w-5 h-5 text-green-500" viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 6L9 17l-5-5" />
+                            </svg>
+                        </button>
                         <button title="Fullscreen" x-show="!fullscreen" x-on:click="makeFullscreen">
                             <svg class="w-5 h-5 opacity-30 hover:opacity-100" viewBox="0 0 24 24"
                                 xmlns="http://www.w3.org/2000/svg">
