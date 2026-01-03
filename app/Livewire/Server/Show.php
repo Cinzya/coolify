@@ -156,6 +156,9 @@ class Show extends Component
 
     public function mount(string $server_uuid)
     {
+        // Initialize the collection early to prevent null errors if an exception occurs
+        $this->availableHetznerTokens = collect();
+
         try {
             $this->server = Server::ownedByCurrentTeam()->whereUuid($server_uuid)->firstOrFail();
             $this->syncData();
