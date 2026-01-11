@@ -53,7 +53,7 @@
                         <x-forms.input id="smtpUsername" label="SMTP Username" />
                         <x-forms.input id="smtpPassword" type="password" label="SMTP Password"
                             autocomplete="new-password" />
-                        <x-forms.input id="smtpTimeout" helper="Timeout value for sending emails." label="Timeout" />
+                        <x-forms.input id="smtpTimeout" helper="Timeout value for sending emails in seconds." label="Timeout (seconds)" />
                     </div>
                 </div>
             </form>

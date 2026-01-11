@@ -82,8 +82,8 @@
                         <div class="flex flex-col w-full gap-2 xl:flex-row">
                             <x-forms.input canGate="update" :canResource="$settings" id="smtpUsername" label="SMTP Username" />
                             <x-forms.input canGate="update" :canResource="$settings" id="smtpPassword" type="password" label="SMTP Password" />
-                            <x-forms.input canGate="update" :canResource="$settings" id="smtpTimeout" helper="Timeout value for sending emails."
-                                label="Timeout" />
+                            <x-forms.input canGate="update" :canResource="$settings" id="smtpTimeout" helper="Timeout value for sending emails in seconds."
+                                label="Timeout (seconds)" />
                         </div>
                     </div>
                 </div>
