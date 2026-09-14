@@ -308,7 +308,10 @@ class Index extends Component
                 ->all();
 
             DB::transaction(function () use ($service, $serviceDatabase) {
-                $service->applications()->create([
+                // Keep the uuid so containers deployed before the conversion still resolve to this resource.
+                ServiceApplication::onlyTrashed()->where('uuid', $serviceDatabase->uuid)->update(['uuid' => new_public_id()]);
+                $service->applications()->forceCreate([
+                    'uuid' => $serviceDatabase->uuid,
                     'name' => $serviceDatabase->name,
                     'human_name' => $serviceDatabase->human_name,
                     'description' => $serviceDatabase->description,
@@ -525,7 +528,10 @@ class Index extends Component
                 ->except('database_uuid')
                 ->all();
             DB::transaction(function () use ($service, $serviceApplication) {
-                $service->databases()->create([
+                // Keep the uuid so containers deployed before the conversion still resolve to this resource.
+                ServiceDatabase::onlyTrashed()->where('uuid', $serviceApplication->uuid)->update(['uuid' => new_public_id()]);
+                $service->databases()->forceCreate([
+                    'uuid' => $serviceApplication->uuid,
                     'name' => $serviceApplication->name,
                     'human_name' => $serviceApplication->human_name,
                     'description' => $serviceApplication->description,

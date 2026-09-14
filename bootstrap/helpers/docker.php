@@ -393,7 +393,7 @@ function defaultDatabaseLabels($database)
     return $labels;
 }
 
-function defaultLabels($id, $name, string $projectName, string $resourceName, string $environment, $pull_request_id = 0, string $type = 'application', $subType = null, $subId = null, $subName = null)
+function defaultLabels($id, $name, string $projectName, string $resourceName, string $environment, $pull_request_id = 0, string $type = 'application', $subType = null, $subId = null, $subName = null, $subUuid = null)
 {
     $labels = collect([]);
     $labels->push('coolify.managed=true');
@@ -411,6 +411,7 @@ function defaultLabels($id, $name, string $projectName, string $resourceName, st
         $subId && $labels->push('coolify.service.subId='.$subId);
         $subType && $labels->push('coolify.service.subType='.$subType);
         $subName && $labels->push('coolify.service.subName='.Str::slug($subName));
+        $subUuid && $labels->push('coolify.service.subUuid='.$subUuid);
     }
 
     return $labels;

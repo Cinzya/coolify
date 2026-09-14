@@ -1547,6 +1547,17 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
     return $topLevel;
 }
 
+/**
+ * Find the stored sub-resource of a compose service, regardless of its current image.
+ *
+ * The stored type is kept when the image changes; users change it with the convert actions.
+ */
+function findServiceSubResource(Service $resource, string $serviceName): ServiceApplication|ServiceDatabase|null
+{
+    return ServiceApplication::where('name', $serviceName)->where('service_id', $resource->id)->first()
+        ?? ServiceDatabase::where('name', $serviceName)->where('service_id', $resource->id)->first();
+}
+
 function serviceParser(Service $resource): Collection
 {
     $uuid = data_get($resource, 'uuid');
@@ -1637,27 +1648,16 @@ function serviceParser(Service $resource): Collection
         } else {
             // Use image detection for non-migrated services
             $isDatabase = isDatabaseImage($image, $service);
-            if ($isDatabase) {
-                $databaseFound = ServiceDatabase::where('name', $serviceName)->where('service_id', $resource->id)->first();
-                if ($databaseFound) {
-                    $savedService = $databaseFound;
-                } else {
-                    $savedService = ServiceDatabase::create([
+            $savedService = findServiceSubResource($resource, $serviceName)
+                ?? ($isDatabase
+                    ? ServiceDatabase::create([
                         'name' => $serviceName,
                         'service_id' => $resource->id,
-                    ]);
-                }
-            } else {
-                $applicationFound = ServiceApplication::where('name', $serviceName)->where('service_id', $resource->id)->first();
-                if ($applicationFound) {
-                    $savedService = $applicationFound;
-                } else {
-                    $savedService = ServiceApplication::create([
+                    ])
+                    : ServiceApplication::create([
                         'name' => $serviceName,
                         'service_id' => $resource->id,
-                    ]);
-                }
-            }
+                    ]));
         }
         // Update image if it changed
         if ($savedService->image !== $image) {
@@ -1698,23 +1698,18 @@ function serviceParser(Service $resource): Collection
         if ($migratedApp || $migratedDb) {
             // Use the already determined migrated service
             $savedService = $migratedApp ?: $migratedDb;
-        } elseif ($isDatabase) {
-            $applicationFound = ServiceApplication::where('name', $serviceName)->where('service_id', $resource->id)->first();
-            if ($applicationFound) {
-                $savedService = $applicationFound;
-            } else {
-                $savedService = ServiceDatabase::firstOrCreate([
-                    'name' => $serviceName,
-                    'service_id' => $resource->id,
-                ]);
-            }
         } else {
-            $savedService = ServiceApplication::firstOrCreate([
-                'name' => $serviceName,
-                'service_id' => $resource->id,
-            ], [
-                'is_gzip_enabled' => true,
-            ]);
+            $savedService = findServiceSubResource($resource, $serviceName)
+                ?? ($isDatabase
+                    ? ServiceDatabase::create([
+                        'name' => $serviceName,
+                        'service_id' => $resource->id,
+                    ])
+                    : ServiceApplication::create([
+                        'name' => $serviceName,
+                        'service_id' => $resource->id,
+                        'is_gzip_enabled' => true,
+                    ]));
         }
         // Check if image changed
         if ($savedService->image !== $image) {
@@ -2068,21 +2063,17 @@ function serviceParser(Service $resource): Collection
         if ($migratedApp || $migratedDb) {
             // Use the already determined migrated service
             $savedService = $migratedApp ?: $migratedDb;
-        } elseif ($isDatabase) {
-            $applicationFound = ServiceApplication::where('name', $serviceName)->where('service_id', $resource->id)->first();
-            if ($applicationFound) {
-                $savedService = $applicationFound;
-            } else {
-                $savedService = ServiceDatabase::firstOrCreate([
-                    'name' => $serviceName,
-                    'service_id' => $resource->id,
-                ]);
-            }
         } else {
-            $savedService = ServiceApplication::firstOrCreate([
-                'name' => $serviceName,
-                'service_id' => $resource->id,
-            ]);
+            $savedService = findServiceSubResource($resource, $serviceName)
+                ?? ($isDatabase
+                    ? ServiceDatabase::create([
+                        'name' => $serviceName,
+                        'service_id' => $resource->id,
+                    ])
+                    : ServiceApplication::create([
+                        'name' => $serviceName,
+                        'service_id' => $resource->id,
+                    ]));
         }
         if ($savedService->image !== $image) {
             $savedService->image = $image;
@@ -2550,6 +2541,7 @@ function serviceParser(Service $resource): Collection
             subId: $savedService->id,
             subName: $savedService->human_name ?? $savedService->name,
             environment: $resource->environment->name,
+            subUuid: $savedService->uuid,
         );
 
         // Add COOLIFY_FQDN & COOLIFY_URL to environment

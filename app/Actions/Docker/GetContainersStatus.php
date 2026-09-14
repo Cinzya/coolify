@@ -12,6 +12,8 @@ use App\Events\ServiceChecked;
 use App\Models\Application;
 use App\Models\ApplicationPreview;
 use App\Models\Server;
+use App\Models\Service;
+use App\Models\ServiceApplication;
 use App\Models\ServiceDatabase;
 use App\Notifications\Application\RestartLimitReached as ApplicationRestartLimitReached;
 use App\Services\ContainerStatusAggregator;
@@ -291,10 +293,12 @@ class GetContainersStatus
             }
             $serviceLabelId = data_get($labels, 'coolify.serviceId');
             if ($serviceLabelId) {
-                $subType = data_get($labels, 'coolify.service.subType');
-                $subId = data_get($labels, 'coolify.service.subId');
                 $parentService = $services->where('id', $serviceLabelId)->first();
                 if (! $parentService) {
+                    continue;
+                }
+                $service = $this->resolveServiceSubResource($parentService, $labels);
+                if (! $service) {
                     continue;
                 }
 
@@ -303,7 +307,8 @@ class GetContainersStatus
                     $this->serviceContainerStatuses = collect();
                 }
 
-                $key = $serviceLabelId.':'.$subType.':'.$subId;
+                $subType = $service instanceof ServiceDatabase ? 'database' : 'application';
+                $key = $serviceLabelId.':'.$subType.':'.$service->id;
                 if (! $this->serviceContainerStatuses->has($key)) {
                     $this->serviceContainerStatuses->put($key, collect());
                 }
@@ -319,14 +324,7 @@ class GetContainersStatus
                 }
 
                 // Mark service as found
-                if ($subType === 'application') {
-                    $service = $parentService->applications()->where('id', $subId)->first();
-                } else {
-                    $service = $parentService->databases()->where('id', $subId)->first();
-                }
-                if ($service) {
-                    $foundServices[] = "$service->id-$service->name";
-                }
+                $foundServices[] = "$service->id-$service->name";
             }
         }
         $exitedServices = collect([]);
@@ -550,6 +548,29 @@ class GetContainersStatus
         $aggregator = new ContainerStatusAggregator;
 
         return $aggregator->aggregateFromStrings($relevantStatuses, $maxRestartCount, preserveRestarting: true);
+    }
+
+    /**
+     * Resolve the service sub-resource a container belongs to.
+     *
+     * Containers deployed with a sub-resource uuid label resolve by uuid, so they keep matching
+     * after a conversion between application and database. Older containers resolve by the
+     * sub type and id they were deployed with.
+     */
+    private function resolveServiceSubResource(Service $service, array $labels): ServiceApplication|ServiceDatabase|null
+    {
+        $subUuid = data_get($labels, 'coolify.service.subUuid');
+        if (filled($subUuid)) {
+            return $service->applications()->where('uuid', $subUuid)->first()
+                ?? $service->databases()->where('uuid', $subUuid)->first();
+        }
+
+        $subId = data_get($labels, 'coolify.service.subId');
+        if (data_get($labels, 'coolify.service.subType') === 'application') {
+            return $service->applications()->where('id', $subId)->first();
+        }
+
+        return $service->databases()->where('id', $subId)->first();
     }
 
     private function aggregateServiceContainerStatuses($services)

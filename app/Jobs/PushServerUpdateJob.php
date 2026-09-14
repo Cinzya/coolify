@@ -219,6 +219,7 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
         $this->servicesById = $this->services->keyBy(fn ($service) => (string) $service->id);
         $this->serviceApplicationsById = $this->services->flatMap(fn ($service) => $service->applications)->keyBy(fn ($application) => (string) $application->id);
         $this->serviceDatabasesById = $this->services->flatMap(fn ($service) => $service->databases)->keyBy(fn ($database) => (string) $database->id);
+        $serviceSubResourcesByUuid = $this->serviceApplicationsById->values()->concat($this->serviceDatabasesById->values())->keyBy('uuid');
 
         $this->allApplicationIds = $this->applications->filter(function ($application) {
             return $application->additional_servers_count === 0;
@@ -303,6 +304,16 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
                 $serviceId = $labels->get('coolify.serviceId');
                 $subType = $labels->get('coolify.service.subType');
                 $subId = $labels->get('coolify.service.subId');
+                $subUuid = $labels->get('coolify.service.subUuid');
+                if (filled($subUuid)) {
+                    // Containers deployed with a sub-resource uuid keep matching after an application/database conversion.
+                    $subResource = $serviceSubResourcesByUuid->get($subUuid);
+                    if (! $subResource || (string) $subResource->service_id !== (string) $serviceId) {
+                        continue;
+                    }
+                    $subType = $subResource instanceof ServiceDatabase ? 'database' : 'application';
+                    $subId = (string) $subResource->id;
+                }
                 if (empty(trim((string) $subId))) {
                     continue;
                 }
@@ -481,8 +492,8 @@ class PushServerUpdateJob implements ShouldBeEncrypted, ShouldQueue, Silenced
                 'docker_compose_raw',
             ])
             ->with([
-                'applications:id,service_id,status,last_online_at,restart_count,max_restart_count,restart_limit_reached,last_restart_at,last_restart_type',
-                'databases:id,service_id,status,last_online_at,is_public,name',
+                'applications:id,uuid,service_id,status,last_online_at,restart_count,max_restart_count,restart_limit_reached,last_restart_at,last_restart_type',
+                'databases:id,uuid,service_id,status,last_online_at,is_public,name',
             ])
             ->get();
     }

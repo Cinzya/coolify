@@ -11,13 +11,23 @@ it('ensures service parser does not include image in trusted service creation qu
     // Read the serviceParser function from parsers.php
     $parsersFile = file_get_contents(__DIR__.'/../../bootstrap/helpers/parsers.php');
 
-    // Check that trusted creation only uses name and service_id
-    // and does not include image in the creation payload
+    // Check that existing sub-resources are looked up by name in either table before creating one,
+    // and that creation does not include image in the creation payload
     expect($parsersFile)
-        ->toContain("\$databaseFound = ServiceDatabase::where('name', \$serviceName)->where('service_id', \$resource->id)->first();")
-        ->toContain("\$applicationFound = ServiceApplication::where('name', \$serviceName)->where('service_id', \$resource->id)->first();")
-        ->toContain("create([\n                        'name' => \$serviceName,\n                        'service_id' => \$resource->id,\n                    ]);")
-        ->not->toContain("create([\n                        'name' => \$serviceName,\n                        'image' => \$image,\n                        'service_id' => \$resource->id,\n                    ]);");
+        ->toContain('function findServiceSubResource(Service $resource, string $serviceName): ServiceApplication|ServiceDatabase|null')
+        ->toContain("return ServiceApplication::where('name', \$serviceName)->where('service_id', \$resource->id)->first()\n        ?? ServiceDatabase::where('name', \$serviceName)->where('service_id', \$resource->id)->first();")
+        ->toContain('$savedService = findServiceSubResource($resource, $serviceName)')
+        ->not->toMatch('/::(create|firstOrCreate)\(\[\s*\'name\' => \$serviceName,\s*\'image\' => \$image,/');
+});
+
+it('ensures parseDockerComposeFile reuses stored sub-resources and labels them with their identity', function () {
+    $sharedFile = file_get_contents(__DIR__.'/../../bootstrap/helpers/shared.php');
+
+    expect($sharedFile)
+        ->toContain('$savedService = findServiceSubResource($resource, $serviceName);')
+        ->toContain("subType: \$savedService instanceof ServiceDatabase ? 'database' : 'application',")
+        ->toContain('subUuid: $savedService->uuid,')
+        ->not->toContain("subType: \$isDatabase ? 'database' : 'application',");
 });
 
 it('ensures service parser updates image after finding or creating service', function () {

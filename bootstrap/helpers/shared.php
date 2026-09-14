@@ -2598,10 +2598,7 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                                 'service_id' => $resource->id,
                             ]);
                         } else {
-                            $savedService = ServiceDatabase::where([
-                                'name' => $serviceName,
-                                'service_id' => $resource->id,
-                            ])->first();
+                            $savedService = findServiceSubResource($resource, $serviceName);
                             if (is_null($savedService)) {
                                 $savedService = ServiceDatabase::create([
                                     'name' => $serviceName,
@@ -2618,10 +2615,7 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                                 'service_id' => $resource->id,
                             ]);
                         } else {
-                            $savedService = ServiceApplication::where([
-                                'name' => $serviceName,
-                                'service_id' => $resource->id,
-                            ])->first();
+                            $savedService = findServiceSubResource($resource, $serviceName);
                             if (is_null($savedService)) {
                                 $savedService = ServiceApplication::create([
                                     'name' => $serviceName,
@@ -3090,10 +3084,11 @@ function parseDockerComposeFile(Service|Application $resource, bool $isNew = fal
                     projectName: $resource->project()->name,
                     resourceName: $resource->name,
                     type: 'service',
-                    subType: $isDatabase ? 'database' : 'application',
+                    subType: $savedService instanceof ServiceDatabase ? 'database' : 'application',
                     subId: $savedService->id,
                     subName: $savedService->name,
                     environment: $resource->environment->name,
+                    subUuid: $savedService->uuid,
                 );
                 $serviceLabels = $serviceLabels->merge($defaultLabels);
                 if (! $isDatabase && $fqdns->count() > 0) {
